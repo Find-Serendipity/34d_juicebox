@@ -4,10 +4,15 @@ const apiRouter = express.Router();
 
 const { getUserById } = require("../db/index");
 
-apiRouter.use(async (req, res, next) => {
-  // establish and check for Authorization from Bearer
+apiRouter.use("/", (req, res) => {
+  res.send("/api");
+});
 
-  const prefix = "Bearer ";
+// middleware to establish and check for Authorization from Bearer
+//
+
+apiRouter.use(async (req, res, next) => {
+  const prefix = "Bearer";
   const auth = req.header("Authorization");
 
   //if no authorization provided, do next
@@ -41,14 +46,10 @@ apiRouter.use(async (req, res, next) => {
   }
 });
 
-apiRouter.get("/", (req, res) => {
-  res.send("API Root /api");
-});
-
 const usersRouter = require("./users");
 apiRouter.use("/users", usersRouter);
 
-const comicsRouter = require("./comics");
+const postsRouter = require("./posts");
 apiRouter.use("/posts", postsRouter);
 
-module.exports = apiRouter;
+module.exports = { apiRouter, usersRouter, postsRouter };

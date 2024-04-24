@@ -1,20 +1,17 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const bcrypt = require("bcrypt");
 const { faker } = require("@faker-js/faker");
-const { bcrypt } = require("bcrypt");
 
 // Create
 
+// allow a random person to register on the api
 const registerUser = async (username, password) => {
   try {
-    const plainTextPassword = password;
-    const saltRounds = 32;
-    const hashedPassword = await bcrypt.hash(plainTextPassword, saltRounds);
-
     const user = await prisma.user.create({
       data: {
         username,
-        hashedPassword,
+        password,
       },
     });
 
@@ -24,17 +21,28 @@ const registerUser = async (username, password) => {
   }
 };
 
+// create a random user and their posts for the seed
 const createUser = async () => {
   try {
-    const username = faker.internet.userName();
+    const fakeUsername = faker.internet.userName();
     const plainTextPassword = faker.internet.password();
-    const saltRounds = 32;
+    const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(plainTextPassword, saltRounds);
 
     const user = await prisma.user.create({
       data: {
-        username,
-        hashedPassword,
+        username: fakeUsername,
+        password: hashedPassword,
+        post: {
+          create: [
+            { title: faker.color.human(), content: faker.lorem.lines(5) },
+            { title: faker.color.human(), content: faker.lorem.lines(7) },
+            { title: faker.color.human(), content: faker.lorem.lines(5) },
+          ],
+        },
+      },
+      include: {
+        post: true,
       },
     });
 
@@ -44,17 +52,15 @@ const createUser = async () => {
   }
 };
 
-const createPost = async () => {
+const createPost = async (title, content) => {
   try {
-    const name = faker.person.firstName();
-    const title = faker.color.cmyk();
-    const content = faker.lorem.lines(2);
-
     const post = await prisma.post.create({
       data: {
-        name,
         title,
         content,
+      },
+      include: {
+        userId: true,
       },
     });
 
@@ -90,6 +96,23 @@ const getPostById = async (id) => {
   }
 };
 
+const getPostsByUser = async (userId) => {
+  try {
+    const postsByUser = await prisma.user.findUnique({
+      where: {
+        userId,
+      },
+      include: {
+        post: true,
+      },
+    });
+
+    return postsByUser.post;
+  } catch (err) {
+    throw err;
+  }
+};
+
 const getAllUsers = async () => {
   try {
     const rows = await prisma.user.findMany();
@@ -114,9 +137,22 @@ const getUserById = async (id) => {
   }
 };
 
+const getUserByUsername = async (username) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        username,
+      },
+    });
+    return user;
+  } catch (err) {
+    throw err;
+  }
+};
+
 // Update
 
-const updateUser = async (username, password, post) => {
+const updateUser = async (username, password) => {
   try {
     const plainTextPassword = password;
     const saltRounds = 32;
@@ -129,23 +165,6 @@ const updateUser = async (username, password, post) => {
       data: {
         username,
         password: hashedPassword,
-      },
-    });
-
-    return updatedUser;
-  } catch (err) {
-    throw err;
-  }
-};
-
-const addPoststoUser = async (user, post) => {
-  try {
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: req.user.id,
-      },
-      data: {
-        post: { connect: post },
       },
     });
 
@@ -179,9 +198,9 @@ module.exports = {
   createPost,
   getAllPosts,
   getPostById,
+  getPostsByUser,
   getAllUsers,
-  getUserById,
+  getUserByUsername,
   updateUser,
-  addPoststoUser,
   deletePost,
 };

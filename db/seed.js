@@ -1,50 +1,32 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const { createUser, createRobot, getAllBots } = require("./index");
-
-const createRobots = async () => {
-  await prisma.robot.deleteMany({});
-  const amountOfRobots = 15;
-  const robots = [];
-
-  for (let i = 0; i < amountOfRobots; i++) {
-    const robot = createRobot();
-
-    robots.push(robot);
-  }
-
-  await prisma.student.createMany({ data: students, skipDuplicates: true });
-};
+const { createUser } = require("./index");
 
 const createUsers = async () => {
+  await prisma.post.deleteMany({});
   await prisma.user.deleteMany({});
   const amountOfUsers = 3;
   const users = [];
 
-  const robotChoices = getAllBots;
-
   for (let i = 0; i < amountOfUsers; i++) {
-    const user = createUser();
+    const user = await createUser();
+    console.log(user);
 
     users.push(user);
   }
-  await prisma.instructor.createMany({
-    data: users,
-    skipDuplicates: true,
-  });
 };
 
-const main = async () => {
-  await createRobots();
+async function main() {
   await createUsers();
-};
+}
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });
